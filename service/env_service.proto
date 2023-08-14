@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package environmentdata;
+
+// Interface exported by the server.
+service EnvironmentData {
+
+  rpc GetData(GetDataRequest) returns (stream GetDataResponse){}
+
+  rpc UpdateCrater(Crater) returns (CraterArea){}
+
+  rpc GetRoutePoints(StartStopPoints) returns (RoutePoints){}
+
+  rpc SayHello (HelloRequest) returns (HelloReply) {}
+
+}
+
+// The request message containing the user's name.
+message HelloRequest {
+  string name = 1;
+}
+
+// The response message containing the greetings
+message HelloReply {
+  string message = 1;
+}
+
+message CraterArea{
+  string tileID = 1;
+}
+
+message Position{
+  double longitude = 1;
+  double latitude = 2;
+}
+
+message Area{
+  Position bottomleft = 1;
+  Position topright = 2;
+}
+
+enum DataType{
+  ZERO = 0;
+  DEM = 1;
+  PBF = 2;
+}
+
+message Crater{
+  double width = 1;
+  double depth = 2;
+  Position pos = 3;
+}
+
+message GetDataRequest {
+  Area area = 1;
+  string time = 2;
+  int32 level = 3;
+  DataType dataType = 4;
+}
+
+
+message GetDataResponse {
+ string tileID = 1;
+ bytes content = 2;
+ repeated Crater craters = 3;
+}
+
+message StartStopPoints {
+  Position start = 1;
+  Position end = 2;
+}
+
+message RoutePoints {
+  repeated Position pos = 1;
+}
+
