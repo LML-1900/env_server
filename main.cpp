@@ -27,14 +27,14 @@ void RunServer() {
 }
 
 int main(int argc, char** argv) {
-    RunServer();
-//    OSRMService osrmService("/home/lml/OSRM/map/zhuhai/zhuhai.osrm");
-//    Store::Position start(113.5439372, 22.2180642);
-//    Store::Position end(113.5425177, 22.2252363);
-//    std::vector<Store::Position> routePoints = osrmService.getRoutePoints(start, end);
-//    for (const auto &point: routePoints) {
-//        std::cout << point.longitude << " " << point.latitude << std::endl;
-//    }
+//    RunServer();
+    OSRMService osrmService("/home/lml/OSRM/map/zhuhai/zhuhai.osrm");
+    Store::Position start(113.5439372, 22.2180642);
+    Store::Position end(113.5425177, 22.2252363);
+    std::vector<Store::Position> routePoints = osrmService.getRoutePoints(start, end);
+    for (const auto &point: routePoints) {
+        std::cout << point.longitude << " " << point.latitude << std::endl;
+    }
 //    return 0;
 }
 //

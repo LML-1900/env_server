@@ -1,21 +1,28 @@
 cmake_minimum_required(VERSION 3.25)
 
-# Locate protobuf installation
 set(protobuf_MODULE_COMPATIBLE TRUE)
-list(APPEND CMAKE_PREFIX_PATH "$ENV{HOME}/.local")
 find_package(Protobuf CONFIG REQUIRED)
 message(STATUS "Using protobuf ${Protobuf_VERSION}")
 
-# Locate gRPC installation
-list(APPEND CMAKE_PREFIX_PATH "$ENV{HOME}/.local") # replace with your actual path
+set(_PROTOBUF_LIBPROTOBUF protobuf::libprotobuf)
+set(_REFLECTION gRPC::grpc++_reflection)
+if(CMAKE_CROSSCOMPILING)
+    find_program(_PROTOBUF_PROTOC protoc)
+else()
+    set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
+endif()
+
+# Find gRPC installation
+# Looks for gRPCConfig.cmake file installed by gRPC's cmake installation.
 find_package(gRPC CONFIG REQUIRED)
 message(STATUS "Using gRPC ${gRPC_VERSION}")
 
-# Add the paths to Protobuf, gRPC libraries and OSRM libraries
-#link_directories("$ENV{HOME}/.local/lib" "/usr/local/lib")
-
-# Link against the OSRM library
-#find_library(OSRM_LIBRARY osrm HINTS /usr/local/lib)
+set(_GRPC_GRPCPP gRPC::grpc++)
+if(CMAKE_CROSSCOMPILING)
+    find_program(_GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
+else()
+    set(_GRPC_CPP_PLUGIN_EXECUTABLE $<TARGET_FILE:gRPC::grpc_cpp_plugin>)
+endif()
 
 # Proto file
 get_filename_component(hw_proto "./env_service.proto" ABSOLUTE)
@@ -26,6 +33,8 @@ set(hw_proto_srcs "${CMAKE_CURRENT_SOURCE_DIR}/env_service.pb.cc")
 set(hw_proto_hdrs "${CMAKE_CURRENT_SOURCE_DIR}/env_service.pb.h")
 set(hw_grpc_srcs "${CMAKE_CURRENT_SOURCE_DIR}/env_service.grpc.pb.cc")
 set(hw_grpc_hdrs "${CMAKE_CURRENT_SOURCE_DIR}/env_service.grpc.pb.h")
+
+include_directories($ENV{HOME}/.local/include)
 
 add_custom_command(
         OUTPUT "${hw_proto_srcs}" "${hw_proto_hdrs}" "${hw_grpc_srcs}" "${hw_grpc_hdrs}"
@@ -42,16 +51,10 @@ add_library(service
         EnvironmentService.cpp  # replace this with actual source files
         ${hw_proto_srcs}
         ${hw_grpc_srcs}
-#        OSRMService.cpp
+        OSRMService.cpp
 )
-
-# Add the paths to Protobuf, gRPC headers and OSRM headers
-#target_include_directories(service PUBLIC "$ENV{HOME}/.local/include" "/usr/local/include")
-
 target_link_libraries(service
-        gRPC::grpc++
-        gRPC::grpc++_reflection
-        protobuf::libprotobuf
         store
-#        ${OSRM_LIBRARY}
+        ${_PROTOBUF_LIBPROTOBUF} ${_GRPC_GRPCPP} ${_REFLECTION}
+        ${LibOSRM_LIBRARIES} ${LibOSRM_DEPENDENT_LIBRARIES}
 )
