@@ -18,6 +18,7 @@
 #include "../store/Dem.h"
 #include "env_service.grpc.pb.h"
 #include "env_service.pb.h"
+#include "OSRMService.h"
 
 
 using std::vector;
@@ -28,7 +29,6 @@ using grpc::ServerContext;
 using grpc::ServerReader;
 using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
-using grpc::Status;
 using environmentdata::EnvironmentData;
 using environmentdata::Area;
 using environmentdata::GetDataRequest;
@@ -39,18 +39,22 @@ using environmentdata::Crater;
 using environmentdata::Position;
 using environmentdata::StartStopPoints;
 using environmentdata::RoutePoints;
-using environmentdata::HelloReply;
-using environmentdata::HelloRequest;
 
 class EnvironmentService final : public EnvironmentData::Service{
 public:
-    Status GetData(ServerContext* context, const GetDataRequest* dataRequest, ServerWriter<GetDataResponse>* writer) override;
+    grpc::Status GetData(ServerContext* context, const GetDataRequest* dataRequest, ServerWriter<GetDataResponse>* writer) override;
 
-    Status UpdateCrater(ServerContext* context, const Crater* crater, CraterArea* response) override;
+    grpc::Status UpdateCrater(ServerContext* context, const Crater* crater, CraterArea* response) override;
 
-    Status SayHello(ServerContext* context, const HelloRequest* request,HelloReply* reply) override;
+    grpc::Status GetRoutePoints(ServerContext* context, const StartStopPoints* startStopPoints, environmentdata::RoutePoints *response) override;
+
+    EnvironmentService();
+
+    ~EnvironmentService();
 private:
     const int HIGHESTLEVEL = 14;
+
+    OSRMService *osrmService;
 
     void searchData(string tileID, int fileType, environmentdata::GetDataResponse *response);
 

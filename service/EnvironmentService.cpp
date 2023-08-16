@@ -4,25 +4,44 @@
 
 #include "EnvironmentService.h"
 
-Status EnvironmentService::SayHello(ServerContext* context, const HelloRequest* request,HelloReply* reply) {
-    std::string prefix("Hello ");
-    reply->set_message(prefix + request->name());
-    return Status::OK;
+EnvironmentService::EnvironmentService() {
+    osrmService = new OSRMService("/home/lml/OSRM/map/zhuhai/zhuhai.osrm");
 }
 
-Status EnvironmentService::UpdateCrater(grpc::ServerContext *context, const environmentdata::Crater *crater,
+EnvironmentService::~EnvironmentService() {
+    delete osrmService;
+}
+
+grpc::Status EnvironmentService::GetRoutePoints(grpc::ServerContext *context,
+                                          const environmentdata::StartStopPoints *startStopPoints, environmentdata::RoutePoints *response) {
+    Store::Position startPoint(startStopPoints->start().longitude(), startStopPoints->start().latitude());
+    Store::Position endPoint(startStopPoints->end().longitude(), startStopPoints->end().latitude());
+    printf("start: %lf - %lf\n", startPoint.longitude, startPoint.latitude);
+    printf("end: %lf - %lf\n", endPoint.longitude, endPoint.latitude);
+    vector<Store::Position> points = osrmService->getRoutePoints(startPoint, endPoint);
+    std::cout << "total points: " << points.size() << std::endl;
+    for (const auto &point: points) {
+        std::cout << point.longitude << " " << point.latitude << std::endl;
+        Position* position = response->add_pos();
+        position->set_latitude(point.latitude);
+        position->set_longitude(point.longitude);
+    }
+    return grpc::Status::OK;
+}
+
+grpc::Status EnvironmentService::UpdateCrater(grpc::ServerContext *context, const environmentdata::Crater *crater,
                                         environmentdata::CraterArea *response) {
     vector<string> tileIDs = LonLatToTileID(crater->pos(), crater->pos(), HIGHESTLEVEL);
     if (tileIDs.size() == 0) {
-        return Status(grpc::OUT_OF_RANGE, "can't find crater's pos in database.");
+        return grpc::Status(grpc::OUT_OF_RANGE, "can't find crater's pos in database.");
     }
     int id = MySQLClient::getInstance()->getDataIdFromFileStorage(tileIDs[0], DataType::DEM);
     vector<Store::Crater> craters = {Store::Crater(Store::Position(crater->pos().longitude(), crater->pos().latitude()), crater->width(), crater->depth())};
     MongoClient::getInstance()->insertCraters(id, craters);
-    return Status::OK;
+    return grpc::Status::OK;
 }
 
-Status EnvironmentService::GetData(grpc::ServerContext *context, const GetDataRequest* dataRequest, ServerWriter<GetDataResponse>* writer) {
+grpc::Status EnvironmentService::GetData(grpc::ServerContext *context, const GetDataRequest* dataRequest, ServerWriter<GetDataResponse>* writer) {
     auto tileIDs = LonLatToTileID(dataRequest->area().bottomleft(), dataRequest->area().topright(), dataRequest->level());
     for (const auto &tileID: tileIDs)
     {
@@ -30,7 +49,7 @@ Status EnvironmentService::GetData(grpc::ServerContext *context, const GetDataRe
         searchData(tileID, dataRequest->datatype(), &re);
         writer->Write(re);
     }
-    return Status::OK;
+    return grpc::Status::OK;
 }
 
 void EnvironmentService::searchData(string tileID, int fileType, environmentdata::GetDataResponse *response) {
